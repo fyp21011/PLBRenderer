@@ -4,10 +4,9 @@ import tempfile
 from typing import Callable, Dict, Type
 
 import bpy
-import bmesh
 import mathutils
 
-from RenderProtocol import *
+from protocol import *
 
 
 def _set_item_pose(item, pose):
