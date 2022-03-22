@@ -6,9 +6,9 @@ from typing import Callable, Dict, Type
 
 import bpy
 import mathutils
+import numpy as np
 
-cwd = os.getcwd()
-sys.path.append(cwd)
+sys.path.append('D:\\Programming\\renderer\\PLBRenderer')
 
 from protocol import *
 
@@ -65,6 +65,7 @@ def set_particles_message_handler(message: SetParticlesMessage):
         vertices_np[i, :]
         for i in range(num_vertices)
     ]
+    face = [] #TODO
     if message.obj_name not in bpy.data.objects:
         # no such object, create one meshes object
         meshes = bpy.data.meshes.new(message.obj_name + "_point_cloud")
@@ -79,17 +80,18 @@ def set_particles_message_handler(message: SetParticlesMessage):
         bpy.ops.object.shape_key_add(from_mix = False)
         meshes.clear_geometry()
 
-    meshes.from_pydata(vertices, [], [])
+    meshes.from_pydata(vertices, [], face)
     meshes.update()   
     # animation
-    shapekey = object.shape_key_add(f"key {message.frame_idx}", False)
+    shapekey = object.shape_key_add(name = f"key {message.frame_idx}", from_mix = False)
     shapekey.value = 1
-    object.keyframe_insert(data_path = "value", frame = message.frame_idx)
+    shapekey.keyframe_insert(data_path = "value", frame = message.frame_idx)
     if message.prev_frame_idx != None:
         shapekey.value = 0
-        object.keyframe_insert(data_path = "value", frame = message.prev_frame_idx)
-        meshes.shape_keys.key_blocks[f"key {message.prev_frame_idx}"].value = 0
-        object.keyframe_insert(data_path = "value", frame = message.frame_idx)
+        shapekey.keyframe_insert(data_path = "value", frame = message.prev_frame_idx)
+        prev_shapekey = meshes.shape_keys.key_blocks[f"key {message.prev_frame_idx}"]
+        prev_shapekey.value = 0
+        prev_shapekey.keyframe_insert(data_path = "value", frame = message.frame_idx)
 
 
 def update_rigid_body_mesh_pose_message(message: UpdateRigidBodyPoseMessage):
@@ -163,25 +165,18 @@ def test_main():
         
 def test_set_particles():
     import numpy as np
-    for i in range(1, 100, 10):
-        message = SetParticlesMessage(
-            np.array([
-                1.0, 1.0, 1.0,
-                0.0, 0.0, 0.0,
-                1.0, 0.0, 0.0, 
-                1.0, 0.0, 1.0,
-                1.0, 1.0, 0.0,
-                0.0, 0.0, 0.0, 
-                0.0, 0.0, 1.0,
-                0.0, 1.0, 0.0,
-                0.0, 1.0, 1.0,
-                0.2, 0.4, 0.7,
-                0.6, 0.2, 0.5
-            ]) + i / 10,
-            'test_points',
-            0
-        )
+    X, Y = np.meshgrid(np.linspace(0, 10, 200), np.linspace(0, 5, 200))
+    surface = np.concatenate(
+        [
+            np.expand_dims(X, axis = 2),
+            np.expand_dims(Y, axis = 2),
+            np.zeros((200, 200, 1))
+        ], axis = 2
+    )
+    for i in range(0, 100, 10):
+        message = SetParticlesMessage(surface + (np.random.rand(200, 200, 3) if i != 0 else 0.5), 'test_points', i)
+        print(f'set shape for frame_idx = {message.frame_idx}, whose previous key is {message.prev_frame_idx}')
         callback_entrance(message)
         
-# test_set_particles()
-test_main()
+test_set_particles()
+#test_main()
