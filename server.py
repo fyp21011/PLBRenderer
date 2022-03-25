@@ -7,13 +7,19 @@ from typing import Callable, Dict, Type
 import bpy
 import mathutils
 
-sys.path.append('D:\\Programming\\renderer\\PLBRenderer')
-
+sys.path.append('.')
 from protocol import *
 
 
 def _set_item_pose(item, pose):
-    """ #TODO
+    """ Set the pose for an object
+
+    NOTE: no keyframe animation will be set
+
+    Params
+    ------
+    item: the object whose pose will be set
+    pose: the desired pose, a 7-dim vector for xyz-quat
     """
     assert len(pose) == 7, \
         f"expecting a pose vector of length 7 (3 location dims, 4 rotation dims), got {len(pose)}"
@@ -21,9 +27,7 @@ def _set_item_pose(item, pose):
     item.rotation_mode = 'QUATERNION'
     item.rotation_quaternion = mathutils.Quaternion(pose[3:])
 
-def add_rigid_body_mesh_message_handler(message: AddRigidBodyMeshMessage):
-    """ #TODO
-    """
+def _add_meshes_handler(message: MeshesMessage):
     filename = message.mesh_name
     suffix = filename.split('.')
     if suffix:
@@ -47,16 +51,15 @@ def add_rigid_body_mesh_message_handler(message: AddRigidBodyMeshMessage):
         raise NotImplementedError(f'*.{suffix} is not supported meshes file extension')
 
 
-def add_rigid_body_primitive_message_handler(message: AddRigidBodyPrimitiveMessage):
-    """ #TODO
-    """
+def _add_primitive_handler(message: AddRigidBodyPrimitiveMessage):
     #message.create_primitive_in_blender()
     eval(message.primitive_type)(**message.params)
     item = bpy.context.active_object
     item.name = message.primitive_name
 
-def set_particles_message_handler(message: SetParticlesMessage):
-    """ #TODO
+def _point_cloud_message_handler(message: PointCloudMessage):
+    """ If the point cloud has already existed in the Blender scene,
+    update the points; otherwise, create a new object. 
     """
     if message.obj_name not in bpy.data.objects:
         # no such object, create one meshes object
@@ -86,8 +89,9 @@ def set_particles_message_handler(message: SetParticlesMessage):
         prev_shapekey.keyframe_insert(data_path = "value", frame = message.frame_idx)
 
 
-def update_rigid_body_mesh_pose_message(message: UpdateRigidBodyPoseMessage):
-    """ #TODO
+def _update_pose_message(message: UpdateRigidBodyPoseMessage):
+    """ A keyframe animation will be set to move the rigid body to the 
+    new pose defined by the message
     """
     if message.name in bpy.data.objects:
         obj = bpy.data.objects[message.name]
@@ -98,7 +102,7 @@ def update_rigid_body_mesh_pose_message(message: UpdateRigidBodyPoseMessage):
         raise ValueError(f"receive pose-updating message for {message.name},"+ \
             "but the object is not known by the Blender")
 
-def finish_server(message: FinishAnimationMessage):
+def _animation_finish_handler(message: FinishAnimationMessage):
     """ #TODO
     """
     dir, _, = os.path.split(os.path.realpath(__file__))
@@ -108,11 +112,11 @@ def finish_server(message: FinishAnimationMessage):
     exit(0)
 
 MSG_CALLBACK_TABLE: Dict[Type, Callable[[BaseMessage], None]] = {
-    AddRigidBodyMeshMessage:         add_rigid_body_mesh_message_handler,
-    AddRigidBodyPrimitiveMessage:    add_rigid_body_primitive_message_handler,
-    SetParticlesMessage:             set_particles_message_handler,
-    UpdateRigidBodyPoseMessage:      update_rigid_body_mesh_pose_message,
-    FinishAnimationMessage:          finish_server
+    MeshesMessage:         _add_meshes_handler,
+    AddRigidBodyPrimitiveMessage:    _add_primitive_handler,
+    PointCloudMessage:             _point_cloud_message_handler,
+    UpdateRigidBodyPoseMessage:      _update_pose_message,
+    FinishAnimationMessage:          _animation_finish_handler
 }
 
 def callback_entrance(message: BaseMessage) -> None:
