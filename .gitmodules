@@ -1,3 +1,4 @@
-[submodule "RenderProtocol"]
-	path = RenderProtocol
+[submodule "protocol"]
+	path = protocol
 	url = https://github.com/fyp21011/RenderProtocol.git
+	branch = dev_protocol
