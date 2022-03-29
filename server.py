@@ -57,7 +57,7 @@ def _add_primitive_handler(message: AddRigidBodyPrimitiveMessage):
     item = bpy.context.active_object
     item.name = message.primitive_name
 
-def _point_cloud_message_handler(message: PointCloudMessage):
+def _point_cloud_message_handler(message: DeformableMeshesMessage):
     """ If the point cloud has already existed in the Blender scene,
     update the points; otherwise, create a new object. 
     """
@@ -112,9 +112,9 @@ def _animation_finish_handler(message: FinishAnimationMessage):
     exit(0)
 
 MSG_CALLBACK_TABLE: Dict[Type, Callable[[BaseMessage], None]] = {
-    MeshesMessage:         _add_meshes_handler,
+    MeshesMessage:                  _add_meshes_handler,
     AddRigidBodyPrimitiveMessage:    _add_primitive_handler,
-    PointCloudMessage:             _point_cloud_message_handler,
+    DeformableMeshesMessage:         _point_cloud_message_handler,
     UpdateRigidBodyPoseMessage:      _update_pose_message,
     FinishAnimationMessage:          _animation_finish_handler
 }

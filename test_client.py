@@ -51,11 +51,11 @@ assert surface.shape == (NUM_VERTICES * NUM_VERTICES * 2, 3), \
 rotation_cnt = 0
 
 for frame_idx in range(0, 100, 10):
-    messages.append(PointCloudMessage(
-        surface + (frame_idx / 10),
+    messages.append(DeformableMeshesMessage.Factory(
         'cloud',
-        frame_idx
-    ))
+        frame_idx,
+        pcd = surface + (frame_idx / 10),
+    ).message)
     messages.append(UpdateRigidBodyPoseMessage(
         'cube_a',
         [0.0, 0.0, 0.1 + 0.01 * frame_idx] + test_rotation[rotation_cnt],
