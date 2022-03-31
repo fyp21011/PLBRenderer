@@ -45,6 +45,9 @@ surface = np.concatenate(
     axis = 0
 )
 
+X, Y, Z = np.mgrid[:30, :30, :30]
+sdf_balls = u = (X-15)**2 + (Y-15)**2 + (Z-15)**2 - 8**2
+
 assert surface.shape == (NUM_VERTICES * NUM_VERTICES * 2, 3), \
     f"surface's shape is {surface.shape}, but expected to be ({NUM_VERTICES * NUM_VERTICES * 2}, 3)"
 
@@ -56,6 +59,13 @@ for frame_idx in range(0, 100, 10):
         frame_idx,
         pcd = surface + (frame_idx / 10),
     ).message)
+    messages.append(DeformableMeshesMessage.Factory(
+        'ball',
+        frame_idx + 1,
+        sdf = sdf_balls
+    ).message)
+    prev_idx = messages[-1].prev_frame_idx
+    assert prev_idx == None or prev_idx == frame_idx - 10 + 1
     messages.append(UpdateRigidBodyPoseMessage(
         'cube_a',
         [0.0, 0.0, 0.1 + 0.01 * frame_idx] + test_rotation[rotation_cnt],
@@ -64,10 +74,10 @@ for frame_idx in range(0, 100, 10):
     rotation_cnt += 1
 
 messages.append(
-    FinishAnimationMessage('test_10', 100)
+    FinishAnimationMessage('test_11', 100)
 )
 
 for message in messages:
     message.send()
-    sleep(1)
+    sleep(0.1)
     
