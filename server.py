@@ -34,15 +34,27 @@ def _add_meshes_handler(message: MeshesMessage):
         suffix = suffix[-1]
     else:
         raise ValueError(f'cannot infer the meshes file type: {filename}')
-    if suffix.lower().strip() == '.dae':
-        with tempfile.TemporaryFile() as mesh_file:
+    mesh_type = suffix.lower().strip()
+    if mesh_type == 'dae':
+        with tempfile.NamedTemporaryFile() as mesh_file:
             temp_file_name = mesh_file.name
             mesh_file.write(message.mesh_file)
             bpy.ops.wm.collada_import(
-                filepath = os.path.join(tempfile.gettempdir(), temp_file_name), 
+                    filepath = temp_file_name, 
                 auto_connect = True, 
                 find_chains = True, 
                 fix_orientation = True
+            )
+            item = bpy.context.active_object
+            item.name = message.mesh_name
+            _set_item_pose(item, message.init_pose)
+    elif mesh_type == 'stl':
+        with tempfile.NamedTemporaryFile(suffix='.stl') as mesh_file:
+            temp_file_name = mesh_file.name
+            mesh_file.write(message.mesh_file)
+            bpy.ops.import_mesh.stl(
+                filepath=temp_file_name,
+                filter_glob='*.stl'
             )
             item = bpy.context.active_object
             item.name = message.mesh_name
